@@ -186,7 +186,7 @@ Sensitive credentials, authentication tokens, and unnecessary personal informati
 
 ## Author
 
-**William James**
+**William Gokah**
 
 Cybersecurity | SOC Investigations | Wazuh Operations | Detection Engineering
 
