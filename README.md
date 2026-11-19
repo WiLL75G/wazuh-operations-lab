@@ -119,7 +119,7 @@ Sensitive credentials and unnecessary personal information will not be included 
 
 ## Author
 
-**William James**
+**William Gokah**
 
 SOC Investigations | Wazuh Operations | Detection Engineering
 
