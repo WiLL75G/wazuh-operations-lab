@@ -1,26 +1,26 @@
-
 # Module 01 — Architecture and Deployment Validation
 
 **Project:** [Wazuh Operations Lab](../README.md)  
 **Environment:** Wazuh 4.14.6 | Docker | Windows 11  
 **Status:** Completed  
-**Assessment:** Demonstrated within the tested scope
+**Assessment:** Demonstrated within the tested scope  
+**Validation date:** November 19, 2026
 
 ---
 
 ## 1. Objective
 
-Validate the existing Wazuh deployment and establish a monitoring baseline before performing operational troubleshooting.
+Validate the existing Wazuh deployment and establish an operational monitoring baseline before beginning troubleshooting exercises.
 
-The goal was to independently verify:
+The objective was to independently verify:
 
-- Wazuh container runtime status
-- Dashboard accessibility
-- Windows agent connectivity
+- Wazuh Manager, Indexer, and Dashboard container status
+- Wazuh Dashboard accessibility
+- Windows endpoint agent connectivity
 - Windows Security event ingestion
-- Retrieval of a processed security event
+- Wazuh rule processing and event retrieval
 
-A running container or connected agent was not treated as sufficient proof of complete platform health.
+The validation follows an evidence-first approach. A running container, accessible Dashboard, or connected agent is not automatically proof of complete monitoring health.
 
 ---
 
@@ -29,198 +29,327 @@ A running container or connected agent was not treated as sufficient proof of co
 | Component | Configuration |
 |---|---|
 | Host | MacBook Air M2 |
+| Operating system | macOS |
 | Container platform | Docker |
-| Wazuh deployment | Single-node, version 4.14.6 |
+| Wazuh deployment | Single-node |
+| Wazuh version | 4.14.6 |
 | Wazuh components | Manager, Indexer, Dashboard |
-| Endpoint | Windows 11 ARM64, WIN-SOC |
-| Agent | Wazuh Agent 4.14.9 |
-| Agent ID | 004 |
+| Endpoint | Windows 11 ARM64 |
+| Endpoint hostname | WIN-SOC |
 | Endpoint IP | 192.168.64.20 |
+| Wazuh Agent | 4.14.9 |
+| Agent ID | 004 |
+| Telemetry | Windows Event Logs, Sysmon |
 
-### Architecture
+### Monitoring Architecture
 
 ```text
-MacBook Air M2
-    |
-    +-- Docker
-    |    +-- Wazuh Manager
-    |    +-- Wazuh Indexer
-    |    +-- Wazuh Dashboard
-    |
-    +-- Windows 11 VM: WIN-SOC
-         +-- Wazuh Agent 004
-         +-- Windows Event Logs
-         +-- Sysmon
+MacBook Air M2 — macOS
+│
+├── Docker
+│   ├── Wazuh Manager 4.14.6
+│   ├── Wazuh Indexer 4.14.6
+│   └── Wazuh Dashboard 4.14.6
+│
+└── Windows 11 ARM64 VM
+    └── WIN-SOC
+        ├── Wazuh Agent 4.14.9
+        ├── Windows Security Events
+        ├── Windows System Events
+        ├── Windows Application Events
+        └── Sysmon Operational Events
 ```
 
-The Windows agent communicates with the Wazuh Manager, which processes collected events for security monitoring.
+The Windows agent collects endpoint telemetry and forwards it to the Wazuh Manager.
+
+The Manager processes events using configured decoders and detection rules. Processed alerts can subsequently be indexed and investigated through the Wazuh Dashboard.
+
+**Scope:** A single Windows endpoint in an independent home-lab environment.
 
 ---
 
 ## 3. Baseline Validation
 
-### Check 01 — Docker Container Status
+### Check 01 — Wazuh Container Runtime
 
-**Action:** Inspected the running Wazuh containers using:
+**Objective:** Confirm that the required Wazuh containers are running.
+
+**Action performed:**
+
+Inspected Docker container status from macOS Terminal.
 
 ```bash
-docker ps
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 ```
 
-**Observed:**
+**Observed results:**
 
-The following containers reported a running state:
+| Container | Observed status |
+|---|---|
+| single-node-wazuh.manager-1 | Up |
+| single-node-wazuh.indexer-1 | Up |
+| single-node-wazuh.dashboard-1 | Up |
 
-- `single-node-wazuh.manager-1`
-- `single-node-wazuh.indexer-1`
-- `single-node-wazuh.dashboard-1`
+All three containers reported running states during the inspection.
 
-**Interpretation:**
+#### Evidence M01-E01 — Container Runtime
 
-The required Wazuh containers were running during the inspection.
+![Wazuh Manager, Indexer and Dashboard containers running](evidence/m01-01-wazuh-containers-running.png)
 
-**Limitation:**
+**Observation:** Docker reported the Wazuh Manager, Indexer, and Dashboard containers as running.
 
-A Docker `Up` state does not independently establish internal service health or production readiness.
+**Interpretation:** The three required Wazuh containers were available at the container runtime level.
 
-### Check 02 — Dashboard Accessibility
+**Limitation:** A Docker `Up` status does not independently prove that every application service is healthy or that the deployment is production-ready.
 
-**Action:** Accessed the Wazuh Dashboard.
+---
 
-**Observed:**
+### Check 02 — Wazuh Dashboard Accessibility
 
-The Dashboard interface was accessible.
+**Objective:** Verify that the Wazuh Dashboard can be accessed for monitoring and investigation.
 
-**Interpretation:**
+**Action performed:**
 
-The web interface was available for monitoring and investigation at the time of testing.
+Opened the Wazuh Dashboard and navigated through the available monitoring interfaces.
 
-**Limitation:**
+**Observed results:**
 
-Dashboard accessibility alone does not prove that every backend service or data pipeline is healthy.
+- The Dashboard interface loaded successfully.
+- The agent management interface was accessible.
+- WIN-SOC monitoring information could be viewed.
+- Threat Hunting was available for inspecting security alerts.
+
+**Interpretation:** The Dashboard was accessible and supported the monitoring and investigation functions exercised during validation.
+
+**Evidence:** Dashboard accessibility is also demonstrated in M01-E02, M01-E03, and M01-E04 below.
+
+**Limitation:** An accessible Dashboard does not establish comprehensive backend health or guarantee that every intended event source is functioning.
+
+---
 
 ### Check 03 — Windows Agent Connectivity
 
-**Action:** Inspected the WIN-SOC agent in the Wazuh Dashboard.
+**Objective:** Confirm that the monitored Windows endpoint is connected to Wazuh.
 
-**Observed:**
+**Action performed:**
 
-| Field | Result |
+Opened the Wazuh agent management interface and inspected WIN-SOC.
+
+**Observed results:**
+
+| Field | Verified value |
 |---|---|
 | Agent name | WIN-SOC |
 | Agent ID | 004 |
 | Agent IP | 192.168.64.20 |
+| Operating system | Windows 11 |
+| Agent version | 4.14.9 |
 | Agent status | Active |
-| Keepalive | Recent at inspection |
+| Last keepalive | Recent at inspection |
 
-**Interpretation:**
+#### Evidence M01-E02 — WIN-SOC Agent Status
 
-The Wazuh Manager reported the Windows endpoint as connected.
+![WIN-SOC Agent 004 reporting Active with recent keepalive](evidence/m01-02-win-soc-agent-active.png)
 
-**Limitation:**
+**Observation:** WIN-SOC, Agent ID 004, reported `Active` and displayed a recent keepalive timestamp.
 
-An Active agent does not prove that every required log source is configured or collected.
+**Interpretation:** The Wazuh Manager recognized the endpoint as connected at the time of inspection.
 
-### Check 04 — Windows Security Event Ingestion
+**Limitation:** An Active agent does not establish that all configured event sources are being collected or that telemetry coverage is complete.
 
-**Action:** Examined security event records through Wazuh Threat Hunting.
-
-**Observed:**
-
-| Field | Verified result |
-|---|---|
-| Endpoint | WIN-SOC |
-| Windows Event ID | 4688 |
-| Event category | Process creation |
-| Wazuh Rule ID | 67027 |
-| Investigation interface | Threat Hunting |
-
-**Interpretation:**
-
-Windows Security process-creation telemetry was collected, processed by a Wazuh rule, and retrievable for investigation.
-
-This provided stronger evidence of event ingestion than agent connectivity alone.
-
-**Limitation:**
-
-This observation establishes ingestion and processing for the inspected event, not comprehensive coverage of all Windows Security events.
+This distinction becomes important in Module 03, where a missing PowerShell Operational event collector was identified and corrected.
 
 ---
 
-## 4. Evidence Summary
+### Check 04 — Windows Security Event Ingestion
 
-| Evidence ID | Validation | Finding |
+**Objective:** Confirm that Windows Security telemetry is received, processed, and retrievable through Wazuh.
+
+**Action performed:**
+
+Opened Wazuh Threat Hunting and inspected an individual Windows Security process-creation event.
+
+**Observed event details:**
+
+| Field | Verified value |
+|---|---|
+| Agent | WIN-SOC |
+| Agent ID | 004 |
+| Windows event channel | Security |
+| Windows Event ID | 4688 |
+| Event Record ID | 81093 |
+| Event description | A new process has been created |
+| Wazuh Rule ID | 67027 |
+| Rule description | A process was created |
+| Rule level | 3 |
+| Decoder | windows_eventchannel |
+
+#### Evidence M01-E03 — Windows Security Event 4688
+
+![Windows Security Event ID 4688 retrieved from WIN-SOC](evidence/m01-03-windows-event-4688.png)
+
+**Observation:** Wazuh displayed a structured Windows Security Event ID 4688 associated with WIN-SOC.
+
+The event contained process-creation information, including executable and parent-process fields.
+
+**Interpretation:** Windows Security process-creation telemetry was successfully collected and made available for investigation.
+
+#### Evidence M01-E04 — Wazuh Rule Processing
+
+![Wazuh Rule 67027 processing the Windows process creation event](evidence/m01-04-wazuh-rule-67027.png)
+
+**Observation:** The event was associated with Wazuh Rule ID 67027, level 3, with the description `A process was created.`
+
+The record also identified the `windows_eventchannel` decoder.
+
+**Interpretation:** The inspected Windows event was decoded, processed by a Wazuh rule, and available as an alert record.
+
+This provides stronger evidence of the tested telemetry pipeline than agent connectivity alone.
+
+**Limitation:** The observation confirms ingestion and processing for the inspected event. It does not prove complete coverage of all Windows Security events or establish that the activity was malicious.
+
+---
+
+## 4. Evidence Index
+
+The following genuine screenshots document the completed validation.
+
+| Evidence ID | Evidence | Technical claim supported |
 |---|---|---|
-| M01-E01 | Docker runtime | Three required Wazuh containers running |
-| M01-E02 | Dashboard access | Dashboard accessible |
-| M01-E03 | Agent connectivity | WIN-SOC Agent 004 reported Active |
-| M01-E04 | Security telemetry | Event ID 4688 processed by Rule 67027 |
+| M01-E01 | [Docker Container Runtime](evidence/m01-01-wazuh-containers-running.png) | Manager, Indexer, and Dashboard containers were running |
+| M01-E02 | [WIN-SOC Agent Connectivity](evidence/m01-02-win-soc-agent-active.png) | Agent 004 reported Active with recent keepalive |
+| M01-E03 | [Windows Event ID 4688](evidence/m01-03-windows-event-4688.png) | Windows Security process-creation event was retrieved |
+| M01-E04 | [Wazuh Rule 67027](evidence/m01-04-wazuh-rule-67027.png) | The inspected event was processed by Wazuh |
 
-Evidence references identify verified observations. Supporting screenshots will be linked here only after the corresponding genuine files have been added to the repository.
+### Evidence Handling
 
-No screenshots have been reconstructed or generated for this module.
+All evidence originates from actual laboratory observations.
+
+- No screenshots were generated or reconstructed.
+- Screenshots support only the claims visible in their contents.
+- Agent connectivity, event ingestion, and rule processing are assessed separately.
+- The evidence represents the observed state during testing, not a guarantee of continuous operational availability.
+
+### Evidence Directory
+
+```text
+module-01-architecture-deployment/
+├── README.md
+└── evidence/
+    ├── m01-01-wazuh-containers-running.png
+    ├── m01-02-win-soc-agent-active.png
+    ├── m01-03-windows-event-4688.png
+    └── m01-04-wazuh-rule-67027.png
+```
 
 ---
 
 ## 5. Findings
 
-The exercise established a practical operational baseline across four separate checkpoints:
+The exercise established four important operational findings.
 
-1. The Wazuh containers were running.
-2. The Wazuh Dashboard was accessible.
-3. WIN-SOC was reporting Active.
-4. A Windows Security Event ID 4688 was processed and retrievable through Threat Hunting.
+### Finding 01 — Required Wazuh Containers Were Running
 
-These observations collectively support baseline monitoring functionality within the tested environment.
+The Manager, Indexer, and Dashboard containers reported running states.
 
-They do not establish production readiness or comprehensive event coverage.
+This established container-level availability during the inspection.
+
+### Finding 02 — Dashboard Access Was Available
+
+The Wazuh Dashboard was accessible and supported the monitoring activities performed during validation.
+
+### Finding 03 — WIN-SOC Was Connected
+
+Wazuh Agent 004 reported Active with a recent keepalive.
+
+This established agent connectivity at the time of inspection.
+
+### Finding 04 — Windows Security Telemetry Was Processed
+
+Windows Security Event ID 4688 was retrieved through Threat Hunting and associated with Wazuh Rule 67027.
+
+This confirmed event ingestion and rule processing for the inspected record.
 
 ---
 
 ## 6. Operational Lessons
 
-**Container availability and application health are different checks.**
+### Container Availability Is Not Application Health
 
-A running container establishes runtime status, not necessarily full service health.
+A running Docker container is a useful first checkpoint, but it does not independently verify the health of every application component.
 
-**Agent connectivity and telemetry collection are different checks.**
+### Agent Connectivity Is Not Complete Telemetry Coverage
 
-An Active endpoint can still have missing event-channel collectors.
+An Active agent demonstrates connectivity, not complete monitoring coverage.
 
-**Actual event retrieval provides stronger ingestion evidence.**
+Individual log sources and event channels require separate validation.
 
-Inspecting Event ID 4688 and its Wazuh rule association established that the tested Windows Security event was processed and available for investigation.
+### Event Reception and Alert Generation Are Distinct
+
+A collected event may not generate an alert unless the applicable rule conditions are satisfied.
+
+For this exercise, Windows Event ID 4688 was both received and associated with a Wazuh alert rule.
+
+### Evidence Determines the Conclusion
+
+Operational assessments should distinguish:
+
+**Observed:** What the system actually reported.
+
+**Interpretation:** What the observation reasonably supports.
+
+**Unknown:** What the available evidence does not establish.
+
+This prevents overstating the outcome of a successful command, connection, or dashboard check.
 
 ---
 
 ## 7. Outcome and Assessment
 
-**Result:** Completed.
+**Practical result:** Completed.
 
-**Demonstrated:**
+**Assessment:** Demonstrated within the tested scope.
+
+### Competencies Demonstrated
 
 - Docker container runtime inspection
+- Wazuh component identification
 - Wazuh Dashboard accessibility verification
-- Windows agent connectivity verification
+- Windows endpoint agent connectivity verification
 - Windows Security event ingestion validation
-- Evidence-based operational interpretation
+- Wazuh event decoding and rule-processing verification
+- Evidence-based operational documentation
 
-**Not established:**
+### Not Established
 
-- Comprehensive Wazuh component health
+- Comprehensive Wazuh service health
 - Production availability or resilience
-- Complete Windows telemetry coverage
+- Complete endpoint telemetry coverage
 - High availability or clustering
+- Continuous monitoring performance
+- Enterprise-scale deployment readiness
 
-**Final assessment:** Demonstrated within the tested scope.
+### Final Assessment
+
+The exercise established a verified operational baseline for the existing single-node Wazuh deployment and WIN-SOC endpoint.
+
+The results support container runtime availability, Dashboard accessibility, agent connectivity, and ingestion and processing of the inspected Windows Security event.
+
+The observations do not establish comprehensive platform health or production readiness.
+
+**Module 01 status: Completed.**
 
 ---
 
 ## 8. Related Modules
 
-**Next practical exercise:** Windows Agent Management and Troubleshooting.
+### Module 02 — Windows Agent Management and Troubleshooting
 
-The next module builds on this baseline by testing a controlled Windows agent service interruption and recovery.
+The next exercise builds on the established baseline by introducing a controlled Windows agent service interruption.
+
+It evaluates service state, recovery, and subsequent endpoint connectivity.
+
+The exercise is documented separately to preserve a clear distinction between deployment validation and incident troubleshooting.
 
 ---
 
