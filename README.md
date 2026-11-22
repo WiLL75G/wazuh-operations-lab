@@ -382,7 +382,7 @@ The project will be assessed as a whole after the final blind assessment and evi
 
 ## 10. Author
 
-**William James**
+**William Gokah**
 
 SOC Investigations | Wazuh Operations | Detection Engineering
 
