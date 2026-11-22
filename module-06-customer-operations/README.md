@@ -3,229 +3,207 @@
 **Project:** [Wazuh Operations Lab](../README.md)  
 **Module:** Customer Operations  
 **Environment:** Wazuh 4.14.6 | Docker | Windows 11 ARM64 | WIN-SOC  
-**Investigation Date:** November 22, 2026  
+**Date:** November 22, 2026  
 **Case ID:** M06-001  
 **Customer:** CORP-A (Fictional)  
 **Status:** Laboratory Exercise Completed  
 **Assessment:** Partially demonstrated within the tested scope  
-**Case Disposition:** Unresolved — Further Validation Required
+**Case Disposition:** Open, Pending Validation
 
 ## 1. Objective
 
-Practise the operational responsibilities of an MSSP SOC analyst using a controlled Wazuh laboratory environment.
+The objective was to practise MSSP SOC customer operations using an existing Wazuh laboratory environment.
 
-The exercise focused on:
+The exercise covered endpoint monitoring validation, alert intake, process investigation, evidence correlation, severity assessment, simulated SLA management, internal analyst reporting, customer communication, and case disposition.
 
-1. Validating endpoint monitoring availability.
-2. Retrieving and reviewing customer security alerts.
-3. Investigating a potentially suspicious Windows process.
-4. Assessing alert severity and prioritization.
-5. Practising simulated SLA acknowledgment management.
-6. Correlating technical evidence.
-7. Preparing an internal analyst handoff.
-8. Communicating findings to a nontechnical customer.
-9. Documenting the case disposition and remaining evidence gaps.
+All activities were conducted in a home lab using a fictional customer scenario.
 
-The exercise used a fictional customer scenario.
+No real customer tenancy, contractual SLA, or production MSSP operations were involved.
 
-No real customer tenancy, contractual SLA, or production MSSP ticket was involved.
+## 2. Investigation Scenario
 
-## 2. Simulated MSSP Scenario
+The fictional customer CORP-A was assigned the existing WIN-SOC endpoint for a simulated security monitoring case.
 
-**Customer:** CORP-A  
-**Case:** M06-001  
-**Monitored Endpoint:** WIN-SOC  
-**Wazuh Agent:** 004  
-**Detection:** Application Compatibility Database launched  
-**Rule ID:** 92058  
-**Rule Level:** 12
+Wazuh generated repeated alerts associated with the Windows Application Compatibility Database Installer.
 
-Wazuh detected repeated execution of the Windows Application Compatibility Database Installer.
+The selected detection was:
 
-The activity was investigated to determine whether it represented expected Windows functionality or potentially unauthorized execution.
+| Field | Value |
+|---|---|
+| Case ID | M06-001 |
+| Customer | CORP-A |
+| Endpoint | WIN-SOC |
+| Agent ID | 004 |
+| Wazuh Rule | 92058 |
+| Rule Description | Application Compatibility Database launched |
+| Rule Level | 12 |
+| MITRE ATT&CK | T1546.011 Application Shimming |
 
-The case also served as a simulated customer operations exercise involving case intake, prioritization, SLA reasoning, technical reporting, and customer communication.
-
-CORP-A is a fictional customer label. The Wazuh deployment did not provide real customer multitenancy.
+The investigation aimed to determine whether the observed activity was consistent with legitimate Windows operations or required additional security investigation.
 
 ## 3. Lab Environment
 
 | Component | Configuration |
 |---|---|
-| Wazuh deployment | Single-node Docker |
-| Wazuh version | 4.14.6 |
+| Deployment | Wazuh single node |
+| Wazuh Version | 4.14.6 |
+| Deployment Platform | Docker |
 | Endpoint | WIN-SOC |
-| Operating system | Windows 11 Pro ARM64 |
-| Wazuh agent | 4.14.9 |
+| Operating System | Windows 11 ARM64 |
+| Agent Version | 4.14.9 |
 | Agent ID | 004 |
-| Endpoint telemetry | Windows Sysmon |
-| Primary event | Sysmon Event ID 1 |
-| Investigation interface | Wazuh Threat Hunting |
-| Customer environment | Fictional CORP-A |
-| Case management | Simulated |
+| Event Source | Windows Sysmon |
+| Primary Event | Event ID 1 |
+| Investigation Interface | Wazuh Threat Hunting |
+| Customer Context | Fictional CORP-A |
 
-## 4. Stage 01: Endpoint Monitoring Validation
+## 4. Endpoint Monitoring Validation
 
-The investigation began by checking the Wazuh endpoint inventory.
+The investigation began by verifying monitoring availability through the Wazuh endpoint inventory.
 
-The dashboard showed two active agents:
+Two agents were displayed as Active.
 
-- WIN-SOC, agent ID 004.
-- ubuntu-lab, agent ID 001.
+| Agent | ID | Status |
+|---|---|---|
+| WIN-SOC | 004 | Active |
+| ubuntu-lab | 001 | Active |
 
-The WIN-SOC agent was confirmed as Active.
+WIN-SOC also showed a recent agent keep alive.
 
-The endpoint details also showed a recent agent keep-alive.
+### Evidence 01: Endpoint Monitoring
 
-### Evidence 01: Endpoint Monitoring Status
+![Wazuh endpoint inventory showing active monitoring agents](evidence/m06-01-endpoint-status.png)
 
-![Wazuh endpoint inventory showing active WIN-SOC and ubuntu-lab agents](evidence/m06-01-endpoint-status.png)
+**Observation:** WIN-SOC was connected to the Wazuh Manager.
 
-**Observation:** WIN-SOC was reporting an active connection to Wazuh.
+**Interpretation:** The endpoint was available for monitoring.
 
-**Interpretation:** The endpoint was available for monitoring. However, agent connectivity alone does not prove that every possible telemetry source was functioning.
+**Limitation:** Agent connectivity alone does not guarantee complete security telemetry coverage.
 
-**Outcome:** Monitoring availability verified.
-
-## 5. Stage 02: Security Alert Retrieval
+## 5. Security Alert Intake
 
 Wazuh Threat Hunting was used to retrieve events associated with WIN-SOC.
 
-The following search was used:
+The query was:
 
 ```text
 agent.id:"004"
 ```
 
-The initial 24-hour search returned 1,478 matching alerts.
+The initial 24 hour search returned 1,478 matching alerts.
 
-The event table contained several process creation events and a higher-level alert associated with application compatibility database execution.
+The event table included general process creation alerts and a higher level detection associated with application compatibility database execution.
 
-Rule 92058 was selected for further investigation.
+### Evidence 02: Alert Retrieval
 
-### Evidence 02: Wazuh Security Alert Retrieval
+![Wazuh Threat Hunting results showing security alerts from WIN-SOC](evidence/m06-02-alert-retrieval.png)
 
-![Wazuh Threat Hunting showing security alerts associated with WIN-SOC](evidence/m06-02-alert-retrieval.png)
+**Observation:** Wazuh was receiving and processing events from the endpoint.
 
-**Observation:** Wazuh was receiving and processing security events from WIN-SOC.
+**Interpretation:** The available alerts provided an initial investigation starting point.
 
-**Interpretation:** The alert table provided candidate events for investigation. Alert volume alone was not sufficient to determine malicious activity.
+**Decision:** Rule 92058 was selected for further examination.
 
-## 6. Stage 03: Alert Identification and Initial Triage
+## 6. Detection Validation
 
-A focused search was performed:
+A focused query was executed:
 
 ```text
 agent.id:"004" and rule.id:"92058"
 ```
 
-The search returned 12 matching alerts within the selected 24-hour window.
+The selected 24 hour window returned 12 matching alerts.
 
-| Field | Verified value |
+### Evidence 03: Rule 92058
+
+![Wazuh Rule 92058 showing repeated application compatibility database alerts](evidence/m06-03-rule-92058.png)
+
+A matching alert was expanded to examine its Sysmon fields.
+
+| Field | Verified Value |
 |---|---|
-| Rule ID | 92058 |
-| Rule Description | Application Compatibility Database launched |
-| Rule Level | 12 |
-| Agent | WIN-SOC |
-| Source | Sysmon Event ID 1 |
-| Matching alerts | 12 |
-| MITRE ATT&CK | T1546.011 — Application Shimming |
-
-A matching event was opened for detailed analysis.
-
-### Evidence 03: Wazuh Rule 92058
-
-![Wazuh Rule 92058 showing repeated Application Compatibility Database alerts](evidence/m06-03-rule-92058.png)
-
-### Process Creation Evidence
-
-The reviewed event contained the following values:
-
-| Field | Verified value |
-|---|---|
-| Executable | `C:\Windows\System32\sdbinst.exe` |
-| Command Line | `C:\WINDOWS\System32\sdbinst.exe -m -bg` |
-| User | `NT AUTHORITY\SYSTEM` |
+| Image | C:\Windows\System32\sdbinst.exe |
+| Command Line | C:\WINDOWS\System32\sdbinst.exe -m -bg |
+| User | NT AUTHORITY\SYSTEM |
 | Integrity Level | System |
-| Parent Image | `C:\Windows\System32\svchost.exe` |
+| Parent Image | C:\Windows\System32\svchost.exe |
 | Parent Process ID | 1204 |
 | Process ID | 10516 |
+| Sysmon Event ID | 1 |
 | Sysmon Record ID | 275699 |
 
 ### Evidence 04: Process Creation Details
 
-![Wazuh Sysmon Event ID 1 showing sdbinst.exe command line, SYSTEM account, and parent process](evidence/m06-04-process-creation.png)
+![Sysmon process creation fields for sdbinst.exe in Wazuh](evidence/m06-04-process-creation.png)
 
-**Observation:** `sdbinst.exe` executed under SYSTEM with `svchost.exe` reported as its parent.
+**Observation:** The Windows Application Compatibility Database Installer executed under SYSTEM.
 
-**Interpretation:** The process path and execution context were consistent with a possible Windows compatibility operation.
+**Interpretation:** The executable path, account, and reported parent were consistent with a possible Windows system operation.
 
-**Unknown:** The exact initiating service and authorization of the execution had not been established.
+**Unknown:** The exact reason for execution and the initiating service remained unverified.
 
-## 7. Stage 04: Process Ancestry and Correlation
+## 7. Parent Process Investigation
 
-The parent process GUID was used to search for the original Sysmon Event ID 1 record associated with `svchost.exe`.
+The parent process GUID was used to search for the original `svchost.exe` creation record.
 
-No matching original parent creation record was returned from the local Sysmon search.
+The local Sysmon search returned no matching event.
 
-A corresponding Wazuh search over seven days also returned no result.
+A corresponding Wazuh search over seven days also returned no matching process creation record.
 
-The investigation continued using available process information.
+The investigation therefore continued using available process and service information.
 
-### Parent Process Validation
+The running process associated with PID 1204 showed:
 
-The running `svchost.exe` instance reported:
-
-| Field | Verified value |
+| Field | Verified Value |
 |---|---|
-| Process | `svchost.exe` |
+| Process | svchost.exe |
 | Process ID | 1204 |
 | Creation Date | November 19, 2026, 12:29:43 PM |
-| Executable Path | `C:\WINDOWS\System32\svchost.exe` |
-| Command Line | `svchost.exe -k LocalSystemNetworkRestricted -p` |
+| Executable Path | C:\WINDOWS\System32\svchost.exe |
+| Command Line | svchost.exe -k LocalSystemNetworkRestricted -p |
 
-The current process started before the reviewed November 22 detection.
+The current process started before the investigated alert.
 
-Its executable path and command line matched the historical parent information.
+Its command line and executable path matched the parent information in the Wazuh event.
 
-### Service Context
+However, the original parent creation record was unavailable, preventing independent historical process GUID validation.
 
-The running PID 1204 hosted multiple Windows services.
+## 8. Windows Service Correlation
 
-One was:
+The running parent process was associated with multiple Windows services.
 
-**PcaSvc — Program Compatibility Assistant Service**
+One identified service was the Program Compatibility Assistant Service.
 
-The service configuration showed:
-
-| Field | Verified value |
+| Field | Verified Value |
 |---|---|
-| Name | PcaSvc |
+| Service Name | PcaSvc |
 | Display Name | Program Compatibility Assistant Service |
 | State | Running |
 | Start Mode | Auto |
-| Start Account | LocalSystem |
+| Service Account | LocalSystem |
 | Host Process | svchost.exe |
 | Process ID | 1204 |
 
 ### Evidence 05: Service Configuration
 
-![PowerShell service configuration showing PcaSvc running under LocalSystem in PID 1204](evidence/m06-05-service-configuration.png)
+![PowerShell output showing PcaSvc service configuration](evidence/m06-05-service-configuration.png)
 
-**Observation:** PcaSvc was hosted within the same reported service-host process.
+**Observation:** PcaSvc was running within the same service host process identified by PID 1204.
 
-**Interpretation:** This supported a possible Windows compatibility-service explanation.
+**Correlation:** The service configuration matched the reported parent process command line.
 
-**Limitation:** Multiple services shared PID 1204. The evidence did not establish that PcaSvc specifically initiated `sdbinst.exe`.
+**Interpretation:** The evidence supported a possible Windows compatibility service explanation.
 
-## 8. Stage 05: Repeated Execution Comparison
+**Limitation:** Multiple services shared PID 1204. The available telemetry did not establish that PcaSvc specifically initiated sdbinst.exe.
+
+## 9. Repeated Process Execution Analysis
 
 Two Rule 92058 events were compared.
 
-| Field | First reviewed event | Second reviewed event |
+| Field | Event A | Event B |
 |---|---|---|
 | Image | sdbinst.exe | sdbinst.exe |
-| Arguments | `-m -bg` | `-m -bg` |
+| Arguments | -m -bg | -m -bg |
 | User | SYSTEM | SYSTEM |
 | Parent | svchost.exe | svchost.exe |
 | Parent PID | 1204 | 1204 |
@@ -233,41 +211,43 @@ Two Rule 92058 events were compared.
 | Parent Process GUID | Matching | Matching |
 | SHA256 | Matching | Matching |
 
-The records represented separate process executions with consistent executable, account, command-line, and parent information.
+The two records represented separate process instances with consistent execution characteristics.
 
-**Finding:** The executions shared a repeatable process creation pattern.
+**Observation:** Both events showed the same executable, arguments, account, and reported parent process instance.
 
-**Limitation:** Consistency alone did not establish whether the activity was authorized.
+**Interpretation:** The activity followed a repeatable execution pattern.
 
-The investigation also identified a discrepancy between the displayed Wazuh timestamp and source timestamp values in one reviewed event. The exact event chronology therefore remained subject to timestamp validation.
+**Limitation:** A repeatable pattern does not independently establish legitimacy or authorization.
 
-## 9. Stage 06: Executable Integrity Validation
+A discrepancy between dashboard and source timestamps was also observed in one event. The exact chronology was not independently resolved.
 
-Additional read-only checks were performed against the executable on WIN-SOC.
+## 10. Executable Signature Validation
 
-### Digital Signature
-
-The following command was executed:
+The executable was checked using Windows PowerShell.
 
 ```powershell
 Get-AuthenticodeSignature "C:\Windows\System32\sdbinst.exe" | Select-Object Status, StatusMessage, @{Name='Signer';Expression={$_.SignerCertificate.Subject}} | Format-List
 ```
 
-Results:
+The output showed:
 
-| Field | Verified result |
+| Field | Result |
 |---|---|
-| Signature Status | Valid |
+| Status | Valid |
 | Status Message | Signature verified |
 | Signer | Microsoft Windows, Microsoft Corporation |
 
-### Evidence 06: Digital Signature Verification
+### Evidence 06: Digital Signature
 
-![PowerShell output confirming a valid Microsoft digital signature for sdbinst.exe](evidence/m06-06-digital-signature.png)
+![PowerShell showing valid Microsoft signature for sdbinst.exe](evidence/m06-06-digital-signature.png)
 
-### SHA256 Hash Correlation
+**Finding:** The file currently present on WIN-SOC had a valid Microsoft digital signature.
 
-The file hash was calculated using:
+**Limitation:** A valid digital signature does not establish whether the observed execution was authorized.
+
+## 11. SHA256 Hash Validation
+
+The executable hash was calculated using:
 
 ```powershell
 Get-FileHash "C:\Windows\System32\sdbinst.exe" -Algorithm SHA256 | Format-List
@@ -279,37 +259,33 @@ The resulting SHA256 was:
 70AB02A19B185C122C1555F6C02B2001A6DC245E83BD9B5BC82B4D9909BC4675
 ```
 
-The value matched the SHA256 recorded in the reviewed Wazuh process creation events.
+The value matched the executable hash recorded in the reviewed Sysmon events.
 
-### Evidence 07: SHA256 Verification
+### Evidence 07: SHA256 Correlation
 
-![PowerShell Get-FileHash output showing the SHA256 value matching Wazuh telemetry](evidence/m06-07-sha256-verification.png)
+![PowerShell showing SHA256 hash matching the Wazuh process creation records](evidence/m06-07-sha256-verification.png)
 
-**Observation:** The executable currently present on disk had a valid Microsoft signature and matched the hash recorded by Sysmon.
+**Observation:** The calculated file hash matched the hash captured in Wazuh.
 
-**Interpretation:** These findings strengthened confidence in the executable's identity.
+**Interpretation:** The hash comparison strengthened confidence in the executable identity associated with the detection.
 
-**Limitation:** A legitimate signed Windows executable may still be used for unauthorized purposes. File authenticity does not establish execution authorization.
+**Limitation:** Matching hashes establish file identity, not execution authorization.
 
-## 10. Stage 07: Simulated MSSP Severity and SLA Management
+## 12. Simulated Customer Severity Assessment
 
-The case was used to practise customer priority assessment and acknowledgment deadline calculation.
+The alert was evaluated using the available technical evidence.
 
-### Severity Assessment
+**Wazuh Rule Level:** 12
 
-**Wazuh Rule Level:** 12  
 **Provisional Customer Priority:** Medium
 
-The provisional priority was based on the available investigation context:
+The Medium priority was selected as a training assessment because compromise and customer impact were not established, while the execution origin remained partially unresolved.
 
-- A higher-level Wazuh detection was generated.
-- No confirmed compromise was established.
-- Several characteristics were consistent with legitimate Windows behavior.
-- The execution's exact initiating service and authorization remained unresolved.
+This priority was not assigned in a real MSSP ticketing system.
 
-This was a training assessment rather than an actual customer priority assignment.
+## 13. Simulated SLA Management
 
-### Simulated SLA Targets
+The following acknowledgment targets were used for training.
 
 | Priority | Acknowledgment Target |
 |---|---|
@@ -318,173 +294,165 @@ This was a training assessment rather than an actual customer priority assignmen
 | Medium | 2 hours |
 | Low | 8 hours |
 
-### Simulated Case Timing
+### Case M06-001 SLA Exercise
 
-| Field | Training value |
+| Field | Simulated Value |
 |---|---|
-| Fictional customer | CORP-A |
-| Case ID | M06-001 |
-| Priority | Medium, provisional |
-| Assumed intake time | November 22, 2026, 11:00 AM |
-| Acknowledgment target | 2 hours |
-| Calculated deadline | 1:00 PM |
-| Example acknowledgment time | 11:20 AM |
-| Example outcome | Target met |
+| Customer | CORP-A |
+| Priority | Medium |
+| Assumed Receipt Time | 11:00 AM |
+| Acknowledgment Target | 2 hours |
+| Calculated Deadline | 1:00 PM |
+| Example Acknowledgment | 11:20 AM |
+| Example Outcome | Target Met |
 
-The intake and acknowledgment times were hypothetical training values.
+The intake and acknowledgment times were fictional exercise values.
 
-No actual customer ticket was acknowledged.
+No real customer acknowledgment was performed.
 
-**Outcome:** SLA calculation and acknowledgment reasoning practised. Operational SLA compliance was not demonstrated.
+**Assessment:** SLA calculation demonstrated through simulation. Actual operational SLA performance was not tested.
 
-## 11. Stage 08: Internal SOC Handoff
+## 14. Internal SOC Handoff
 
-An internal handoff was prepared to communicate the technical findings to another analyst.
+An internal technical summary was prepared for a simulated incoming analyst.
 
-### Internal Case Summary
-
-**Case:** M06-001  
-**Customer:** CORP-A (Fictional)  
+**Case ID:** M06-001  
+**Customer:** CORP-A  
 **Endpoint:** WIN-SOC  
-**Priority:** Medium (Provisional)  
-**Status:** Investigation Open — Pending Validation
+**Priority:** Medium, Provisional  
+**Status:** Open, Pending Validation
 
-Wazuh Rule 92058 detected repeated `sdbinst.exe` executions.
+Wazuh Rule 92058 detected repeated sdbinst.exe executions on WIN-SOC.
 
-The reviewed records showed consistent command-line arguments, SYSTEM execution, and the same reported `svchost.exe` parent process instance.
+The reviewed records showed SYSTEM execution, matching command line arguments, and the same reported svchost.exe parent process instance.
 
-The executable's digital signature was valid and its SHA256 matched the recorded Sysmon telemetry.
+The executable had a valid Microsoft signature and a SHA256 hash matching the original Sysmon evidence.
 
-The running parent process hosted multiple services, including PcaSvc.
+The running parent process hosted multiple Windows services, including PcaSvc.
 
-However, the exact initiating service was not established and execution authorization was not independently confirmed.
+The exact initiating service and execution authorization remained unverified.
 
-**Recommended Next Action:** Validate the expected system or administrative purpose before closing the case.
+**Recommended Action:** Validate the expected execution purpose before recommending final case closure.
 
-## 12. Customer-Facing Communication
+## 15. Customer Communication
 
-The technical findings were also converted into a short nontechnical update for the fictional customer.
+A nontechnical customer update was prepared for the fictional CORP-A scenario.
 
-### Simulated CORP-A Customer Update
+### Simulated Customer Update
 
-> We detected repeated activity involving a Windows system component on your computer.
->
-> Our initial investigation found characteristics consistent with normal Windows operations, and we have not identified evidence confirming a compromise.
->
-> However, we are continuing to verify the activity's origin before reaching a final conclusion.
+We detected repeated activity involving a Windows system component on your computer.
 
-This communication avoided unsupported claims of compromise or confirmed benign activity.
+Our investigation found characteristics consistent with normal Windows operations, and no evidence confirming a compromise was identified within the reviewed activity.
 
-It also distinguished what the investigation established from what remained unresolved.
+Additional validation would be required to establish the precise origin and expected purpose of the execution.
 
-No actual customer message was sent.
+No real customer message was sent.
 
-## 13. Final Case Assessment
+## 16. Investigation Findings
 
-### Observed
+### Observation
 
-Wazuh detected repeated execution of `sdbinst.exe`.
+Wazuh detected repeated sdbinst.exe executions under SYSTEM.
 
-The reviewed process creation events showed SYSTEM execution and a reported `svchost.exe` parent.
+The reported parent process was svchost.exe.
 
-### Correlated
+### Correlation
 
-Two reviewed executions had matching command-line arguments, parent process GUIDs, user context, and executable hashes.
+Two reviewed events showed matching executable paths, command line arguments, parent process GUIDs, user context, and executable hashes.
 
-The current executable had a valid Microsoft digital signature.
+A valid Microsoft signature was confirmed.
 
-The running parent PID hosted Windows services, including PcaSvc.
+The reported parent process hosted Windows services, including PcaSvc.
 
 ### Interpretation
 
-The evidence supported a plausible legitimate Windows compatibility-related explanation.
+The reviewed evidence supported a plausible legitimate Windows compatibility operation.
 
-No malicious activity was confirmed within the reviewed evidence.
+No malicious execution was confirmed.
 
 ### Unknowns
 
-- The exact service responsible for initiating `sdbinst.exe`.
-- Whether every reviewed execution was expected and authorized.
-- The original parent process creation record.
-- The reason for the observed timestamp discrepancy.
-- Whether related activity outside the reviewed scope would change the assessment.
+The exact initiating service was not established.
 
-### Case Disposition
+Execution authorization was not independently confirmed.
 
-**Technical Exercise:** Completed within the tested scope  
-**Customer Case:** Open — Pending Validation  
-**Final Classification:** Unresolved  
+The original parent process creation record was unavailable.
+
+A timestamp discrepancy remained unresolved.
+
+These evidence limitations prevented a conclusive benign classification.
+
+## 17. Final Case Disposition
+
+**Case ID:** M06-001  
+**Customer:** CORP-A (Fictional)  
+**Technical Exercise:** Completed  
+**Case Classification:** Unresolved  
+**Case Status:** Open, Pending Validation  
 **Confirmed Compromise:** Not Established  
 **Confirmed Authorization:** Not Established
 
-The case was not closed as a confirmed benign true positive because authorization and exact execution origin remained unverified.
+The investigation was completed within the agreed laboratory scope.
 
-This is an evidence-based limitation rather than a failed exercise.
+The case was not closed as confirmed benign because the available evidence did not fully establish authorization and initiating service attribution.
 
-## 14. MSSP Competencies Practised
+## 18. MSSP Competency Assessment
 
 | Competency | Assessment |
 |---|---|
-| Endpoint monitoring validation | Demonstrated |
-| Security alert intake | Demonstrated |
-| Process execution investigation | Demonstrated within reviewed scope |
-| Severity assessment | Partially demonstrated |
-| SLA calculation | Demonstrated through simulation |
-| Actual SLA acknowledgment | Not tested |
-| Internal analyst handoff | Demonstrated with guidance |
-| Customer-facing reporting | Demonstrated with guidance |
-| Real customer communication | Not tested |
-| Real multi-customer case handling | Not tested |
-| Final benign or malicious attribution | Not established |
+| Endpoint Monitoring Validation | Demonstrated |
+| Alert Intake | Demonstrated |
+| Process Investigation | Demonstrated Within Reviewed Scope |
+| Evidence Correlation | Demonstrated |
+| Customer Severity Assessment | Partially Demonstrated |
+| Simulated SLA Calculation | Demonstrated |
+| Actual SLA Acknowledgment | Not Yet Tested |
+| Internal Analyst Handoff | Demonstrated With Guidance |
+| Customer Communication | Demonstrated With Guidance |
+| Real Customer Operations | Not Yet Tested |
+| Multi-Customer Case Handling | Not Yet Tested |
 
-The fictional CORP-A scenario did not provide evidence of genuine MSSP employment, customer operations, or Wazuh multitenancy.
+All demonstrated activities were performed within a controlled home lab.
 
-## 15. Lessons Learned
+No production MSSP experience or genuine customer multitenancy was claimed.
 
-### Monitoring Availability Is Not Complete Telemetry Assurance
+## 19. Lessons Learned
 
-An Active agent indicates connectivity, but relevant events must still be verified.
+### Detection Is Not Confirmation
 
-### Alert Level Does Not Establish Customer Impact
+A higher Wazuh rule level does not independently establish compromise or customer impact.
 
-Wazuh detection levels support triage but do not automatically determine customer severity.
+### Process Context Is Essential
 
-### Process Context Matters
+Executable paths, command lines, user accounts, parent processes, and process GUIDs help explain observed activity.
 
-Executable paths, command lines, parent processes, accounts, process GUIDs, and hashes must be interpreted together.
+### Integrity Does Not Establish Intent
 
-### Signed Executables Can Still Be Abused
+A valid Microsoft signature and matching SHA256 confirm important executable characteristics but do not prove authorization.
 
-A valid digital signature supports executable identity, not authorization of its behavior.
+### Evidence Gaps Must Be Preserved
 
-### Evidence Gaps Must Be Reported
+Unknowns should remain documented rather than being replaced by assumptions.
 
-An analyst should distinguish what was observed, what was inferred, and what could not be established.
+### Customer Reporting Requires Clarity
 
-### Internal and Customer Reports Serve Different Audiences
+Technical investigation details must be translated into understandable customer updates without unsupported claims.
 
-Technical handoffs preserve investigation detail.
+### SLA Practice Must Remain Transparent
 
-Customer updates communicate the situation, potential impact, next steps, and uncertainty in accessible language.
+A simulated SLA calculation does not represent a real contractual acknowledgment or operational performance.
 
-### SLA Simulations Are Not Real SLA Performance
+## 20. Module Assessment
 
-A calculated deadline demonstrates understanding of acknowledgment targets.
+**Module:** 06 Customer Operations  
+**Exercise Status:** Completed  
+**Case Status:** Open, Pending Validation  
+**Assessment:** Partially Demonstrated Within Tested Scope
 
-It does not prove actual service delivery within a contractual SLA.
+This module provided practical experience with Wazuh alert investigation, evidence correlation, simulated customer prioritization, SLA calculation, internal handoff, and customer communication.
 
-## 16. Final Assessment
+The investigation conclusions remain limited to the verified evidence.
 
-**Module:** 06 — Customer Operations  
-**Case:** M06-001  
-**Laboratory Exercise:** Completed  
-**Case Disposition:** Open — Pending Validation  
-**Assessment:** Partially demonstrated within the tested scope
-
-The exercise demonstrated Wazuh-based alert investigation, endpoint evidence correlation, simulated case prioritization, SLA calculation, technical handoff, and nontechnical customer communication.
-
-The investigation preserved unresolved evidence gaps without fabricating a confirmed benign or malicious outcome.
-
-## 17. Navigation
+## 21. Navigation
 
 [Project Home](../README.md) | [Previous Module: Joint SOC × DFIR Investigations](../module-05-soc-investigations/README.md) | [Continue to Module 07: Blind Assessment](../module-07-blind-assessment/README.md)
