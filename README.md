@@ -25,7 +25,7 @@ All technical findings are based on observed home-lab evidence. Simulations are 
 
 An Ubuntu agent was visible as Active during Module 06 monitoring validation. Dedicated Linux endpoint investigations and production clustering were outside the tested module scope.
 
-For additional deployment documentation, see [Architecture](architecture/README.md).
+For additional deployment documentation, see [Architecture](architecture/README.md) once published.
 
 ## 2. Project Modules
 
@@ -208,7 +208,7 @@ Confirmed that its SHA256 matched the hash recorded in the reviewed Sysmon event
 
 The exercise also included simulated customer case intake, priority assessment, SLA calculation, internal analyst handoff, and customer communication.
 
-#### Simulated SLA Management
+### Simulated SLA Management
 
 | Priority | Acknowledgment Target |
 |---|---|
@@ -225,7 +225,7 @@ The example acknowledgment time was hypothetical.
 
 No real customer ticket was acknowledged.
 
-#### Customer Reporting
+### Customer Reporting
 
 Prepared an internal technical handoff preserving the investigation findings, correlation results, and unresolved evidence gaps.
 
@@ -306,42 +306,15 @@ Each module maintains its investigation documentation and selected genuine labor
 
 Evidence may include screenshots, configuration excerpts, event metadata, command outputs, and verified investigation results.
 
-The project follows three assessment classifications:
+Competencies are evaluated using three classifications:
 
-| Classification | Meaning |
-|---|---|
-| Demonstrated | Verified evidence supports successful execution within the stated scope |
-| Partially demonstrated | Some required elements were completed, but limitations remain |
-| Not yet tested | No sufficient hands-on evidence has been collected |
+1. Demonstrated
+2. Partially demonstrated
+3. Not yet tested
 
-The `assessments/` directory is intended to consolidate competency results and reference the supporting module evidence.
+Detailed competency assessments and supporting evidence references are maintained in the `assessments/` directory.
 
-### Current Competency Summary
-
-| Competency | Assessment |
-|---|---|
-| Wazuh Deployment Validation | Demonstrated |
-| Windows Agent Service Recovery | Demonstrated |
-| Manager Disconnect Detection | Not yet tested successfully |
-| Windows Log Collection Troubleshooting | Demonstrated |
-| PowerShell Event 4104 Ingestion | Demonstrated |
-| PowerShell Event 4104 Alert Generation | Not yet tested |
-| File Integrity Monitoring | Demonstrated |
-| Human Attribution for File Deletion | Not yet demonstrated |
-| Sysmon Process Investigation | Demonstrated with guidance |
-| Process Ancestry Correlation | Demonstrated with guidance |
-| Wazuh Detection Investigation | Demonstrated with guidance |
-| Simulated Severity Assessment | Partially demonstrated |
-| Simulated SLA Calculation | Demonstrated |
-| Actual SLA Acknowledgment | Not yet tested |
-| Internal Analyst Handoff | Demonstrated with guidance |
-| Customer Communication | Demonstrated with guidance |
-| Fictional Multi-Customer Case Handling | Not yet tested |
-| Independent Blind Assessment | Not yet tested |
-
-The final competency assessment will be updated after Module 07.
-
-No competency will be marked Demonstrated without supporting evidence.
+The final project assessment will be completed after Module 07.
 
 ## 7. Scope and Limitations
 
@@ -409,7 +382,7 @@ The project will be assessed as a whole after the final blind assessment and evi
 
 ## 10. Author
 
-**William Gokah**
+**William James**
 
 SOC Investigations | Wazuh Operations | Detection Engineering
 
