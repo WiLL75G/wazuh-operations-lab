@@ -25,7 +25,6 @@ All technical findings are based on observed home-lab evidence. Simulations are 
 
 An Ubuntu agent was visible as Active during Module 06 monitoring validation. Dedicated Linux endpoint investigations and production clustering were outside the tested module scope.
 
-For additional deployment documentation, see [Architecture](architecture/README.md) once published.
 
 ## 2. Project Modules
 
